@@ -6,6 +6,8 @@ import VideoModal from "./components/VideoModal";
 import SearchBar from "./components/SearchBar";
 import SetupBanner from "./components/SetupBanner";
 import "./index.css";
+import { supabase } from "./libs/supabase";
+
 
 const API_KEY = import.meta.env.VITE_GDRIVE_API_KEY as string;
 const IS_CONFIGURED = API_KEY && API_KEY !== "your_google_api_key_here";
@@ -43,6 +45,44 @@ export default function App() {
         `ngày ${v.dayNumber}`.includes(q) || String(v.dayNumber).includes(q),
     );
   }, [videos, search]);
+
+    useEffect(() => {
+    const logVisitor = async () => {
+      try {
+        const ipRes = await fetch("https://api.ipify.org?format=json");
+        const ipData = await ipRes.json();
+        const ip = ipData.ip;
+
+        const geoRes = await fetch(`https://ip-api.com/json/${ip}`);
+        const geoData = await geoRes.json();
+
+        const country = geoData.country;
+        const city = geoData.city;
+        const region = geoData.regionName;
+
+        const visitTime = new Date().toISOString();
+
+        const { error } = await supabase.from("visitors").insert([
+          {
+            ip,
+            country,
+            city,
+            region,
+            visit_time: visitTime,
+            user_agent: navigator.userAgent,
+          },
+        ]);
+
+        if (error) {
+          console.error("Insert error:", error);
+        }
+      } catch (err) {
+        console.error("Error:", err);
+      }
+    };
+
+    logVisitor();
+  }, []);
 
   return (
     <div className="min-h-dvh flex flex-col bg-[#0a0a0f] text-[#e8e8f0]">
